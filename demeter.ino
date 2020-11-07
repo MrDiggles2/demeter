@@ -7,8 +7,6 @@ extern "C" {
   #include <user_interface.h>
 }
 
-
-
 const char* ssid     = "Bebes on Parade";
 const char* password = "lameepmeep";
 
@@ -33,6 +31,7 @@ void blink() {
 void setup() {
   Serial.begin(9600); // open serial port, set the baud rate to 9600 bps
   pinMode(0, OUTPUT);
+  digitalWrite(0, HIGH);
 
   // Load in stored values if available
 
@@ -68,6 +67,7 @@ void loop() {
   Serial.println("Max: " + String(maxBound));
   Serial.println("Min: " + String(minBound));
 
+  // If max and min are the same, "map" crashes. Wait for at least a small difference before continuing
   if (maxBound == minBound) {
     delay(200);
     return;
@@ -78,11 +78,9 @@ void loop() {
   Serial.println(String(moistureValue) + " - " + String(moisturePct) + "%");
   Serial.println("");
 
-  // publish(moistureValue, moisturePct);
-  //delay(2000);
-  //return;
+  publish(moistureValue, moisturePct);
+
   Serial.println("Sleeping for 5 seconds");
-  // Deep sleep for 5 seconds
   ESP.deepSleep(5e6);
 }
 
@@ -121,16 +119,14 @@ void publish(int moistureValue, int moisturePct) {
       return;
     }
 
-    Serial.print("Attempting MQTT connection (" + String(attempts) + "/" + String(maxAttempts) + ")");
+    Serial.print("Attempting MQTT connection (" + String(attempts) + "/" + String(maxAttempts) + "): ");
 
     String clientId = "sensor_" + sensorName;
 
     if (client.connect(clientId.c_str())) {
       Serial.println("connected to mqtt");
     } else {
-      Serial.print("failed, rc=");
-      Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
+      Serial.println("failed, rc=" + String(client.state()) + " trying again in 5 seconds");
       delay(5000);
     }
   }
@@ -142,6 +138,8 @@ void publish(int moistureValue, int moisturePct) {
 
   client.publish(("$SYS/demeter/readings/" + sensorName + "/raw").c_str(), String(moistureValue).c_str());
   client.publish(("$SYS/demeter/readings/" + sensorName + "/percent").c_str(), String(moisturePct).c_str ());
+
+  Serial.println("Published successfully");
 
   blink();
 }
