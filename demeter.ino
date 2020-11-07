@@ -6,15 +6,13 @@ const char* password = "lameepmeep";
 
 WiFiClient espClient;
 
-const char* mqtt_server = "raspberrypi.local";
+const char* mqttHost = "raspberrypi.local";
 const String sensorName = "jeff";
 
 PubSubClient client(espClient);
 
-const int AirValue = 150;   //you need to replace this value with Value_1
-const int WaterValue = 105;  //you need to replace this value with Value_2
-int soilMoistureValue = 0;
-int soilmoisturepercent=0;
+int maxBound = 0;
+int minBound = 10000;
 
 void setup() {
   Serial.begin(9600); // open serial port, set the baud rate to 9600 bps
@@ -46,7 +44,7 @@ void setup() {
   Serial.print("Gateway: ");
   Serial.println(WiFi.gatewayIP());
 
-  client.setServer(mqtt_server, 1883);
+  client.setServer(mqttHost, 1883);
 
     // Loop until we're reconnected
   while (!client.connected()) {
@@ -64,42 +62,36 @@ void setup() {
       delay(5000);
     }
   }
-
-  client.publish(("$SYS/demeter/readings/" + sensorName + "/max").c_str(), String(WaterValue).c_str());
-  client.publish(("$SYS/demeter/readings/" + sensorName + "/min").c_str(), String(AirValue).c_str());
 }
 
 
-unsigned long lastMsg = 0;
+unsigned long lastMsgTime = 0;
 
 void loop() {
   client.loop();
 
   unsigned long now = millis();
-  if (now - lastMsg < 2000) {
-    return;
-  }
-  lastMsg = now;
+  if (now - lastMsgTime < 2000) return;
+  lastMsgTime = now;
 
-  soilMoistureValue = analogRead(A0);  //put Sensor insert into soil
-  soilmoisturepercent = map(soilMoistureValue, AirValue, WaterValue, 0, 100);
+  int moistureValue = analogRead(A0);
 
-  if(soilmoisturepercent >= 100) {
-    Serial.print(soilMoistureValue);
-    Serial.print(" - ");
-    Serial.println("100 %");
-  } else if(soilmoisturepercent <=0) {
-    Serial.print(soilMoistureValue);
-    Serial.print(" - ");
-    Serial.println("0 %");
-  } else if(soilmoisturepercent > 0 && soilmoisturepercent < 100) {
-    Serial.print(soilMoistureValue);
-    Serial.print(" - ");
-    Serial.print(soilmoisturepercent);
-    Serial.println("%");
-  }
+  maxBound = max(maxBound, moistureValue);
+  minBound = min(minBound, moistureValue);
 
-  client.publish(("$SYS/demeter/readings/" + sensorName + "/raw").c_str(), String(soilMoistureValue).c_str());
-  client.publish(("$SYS/demeter/readings/" + sensorName + "/percent").c_str(), String(soilmoisturepercent).c_str ());
+  Serial.println("Max: " + String(maxBound));
+  Serial.println("Min: " + String(minBound));
 
+  if (maxBound == minBound) return;
+
+  int moisturePct = map(moistureValue, maxBound, minBound, 0, 100);
+
+  Serial.println(String(moistureValue) + " - " + String(moisturePct) + "%");
+  Serial.println("");
+
+  client.publish(("$SYS/demeter/readings/" + sensorName + "/max").c_str(), String(maxBound).c_str());
+  client.publish(("$SYS/demeter/readings/" + sensorName + "/min").c_str(), String(minBound).c_str());
+
+  client.publish(("$SYS/demeter/readings/" + sensorName + "/raw").c_str(), String(moistureValue).c_str());
+  client.publish(("$SYS/demeter/readings/" + sensorName + "/percent").c_str(), String(moisturePct).c_str ());
 }
