@@ -1,5 +1,6 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
+#include <RTCVars.h>
 
 const char* ssid     = "Bebes on Parade";
 const char* password = "lameepmeep";
@@ -14,9 +15,29 @@ PubSubClient client(espClient);
 int maxBound = 100;
 int minBound = 1024;
 
+RTCVars state; // create the state object
+
+void blink() {
+  digitalWrite(0, HIGH);
+  delay(500);
+  digitalWrite(0, LOW);
+}
+
 void setup() {
   Serial.begin(9600); // open serial port, set the baud rate to 9600 bps
   pinMode(0, OUTPUT);
+
+  state.registerVar(&maxBound);
+  state.registerVar(&minBound);
+
+  if (state.loadFromRTC()) {
+    Serial.println('able to load in max/min values');
+  } else {
+    Serial.println('cold boot');
+  }
+
+  // turn off LED to start with
+  digitalWrite(0, LOW);
  
   Serial.println();
   Serial.println();
@@ -90,12 +111,11 @@ void loop() {
   client.publish(("$SYS/demeter/readings/" + sensorName + "/raw").c_str(), String(moistureValue).c_str());
   client.publish(("$SYS/demeter/readings/" + sensorName + "/percent").c_str(), String(moisturePct).c_str ());
 
-  digitalWrite(0, HIGH);
-  delay(500);
-  digitalWrite(0, LOW);
+  blink();
+
+  state.saveToRTC();
 
   Serial.println("Sleeping for 5 seconds");
-
   // Deep sleep for 5 seconds
   ESP.deepSleep(5e6);
 }
