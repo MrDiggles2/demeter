@@ -11,14 +11,12 @@ const String sensorName = "jeff";
 
 PubSubClient client(espClient);
 
-int maxBound = 0;
-int minBound = 10000;
+int maxBound = 100;
+int minBound = 1024;
 
 void setup() {
   Serial.begin(9600); // open serial port, set the baud rate to 9600 bps
   pinMode(0, OUTPUT);
-
-    // We start by connecting to a WiFi network
  
   Serial.println();
   Serial.println();
@@ -50,7 +48,7 @@ void setup() {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
 
-    String clientId = "jeff";
+    String clientId = "sensor_" + sensorName;
     // Attempt to connect
     if (client.connect(clientId.c_str())) {
       Serial.println("connected to mqtt");
@@ -58,21 +56,15 @@ void setup() {
       Serial.print("failed, rc=");
       Serial.print(client.state());
       Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
       delay(5000);
     }
   }
 }
 
 
-unsigned long lastMsgTime = 0;
-
 void loop() {
-  client.loop();
 
-  unsigned long now = millis();
-  if (now - lastMsgTime < 2000) return;
-  lastMsgTime = now;
+  client.loop();
 
   int moistureValue = analogRead(A0);
 
@@ -82,7 +74,10 @@ void loop() {
   Serial.println("Max: " + String(maxBound));
   Serial.println("Min: " + String(minBound));
 
-  if (maxBound == minBound) return;
+  if (maxBound == minBound) {
+    delay(200);
+    return;
+  }
 
   int moisturePct = map(moistureValue, maxBound, minBound, 0, 100);
 
@@ -94,4 +89,13 @@ void loop() {
 
   client.publish(("$SYS/demeter/readings/" + sensorName + "/raw").c_str(), String(moistureValue).c_str());
   client.publish(("$SYS/demeter/readings/" + sensorName + "/percent").c_str(), String(moisturePct).c_str ());
+
+  digitalWrite(0, HIGH);
+  delay(500);
+  digitalWrite(0, LOW);
+
+  Serial.println("Sleeping for 5 seconds");
+
+  // Deep sleep for 5 seconds
+  ESP.deepSleep(5e6);
 }
