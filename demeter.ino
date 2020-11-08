@@ -114,7 +114,7 @@ void publish(int moistureValue, int moisturePct) {
     // Loop until we're reconnected
   while (!client.connected()) {
     if (attempts++ >= maxAttempts) {
-      Serial.println("Reached max MQTT connection attempts (" + String(attempts) + "/" + String(maxAttempts) + ")");
+      Serial.println("Reached max MQTT connection attempts");
       Serial.println("Failed to publish");
       return;
     }
@@ -140,6 +140,8 @@ void publish(int moistureValue, int moisturePct) {
   client.publish(("$SYS/demeter/readings/" + sensorName + "/percent").c_str(), String(moisturePct).c_str ());
 
   Serial.println("Published successfully");
+
+  client.disconnect();
 
   blink();
 }
