@@ -1,0 +1,26 @@
+{
+  "name": "demeter",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MrDiggles2/demeter.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MrDiggles2/demeter/issues"
+  },
+  "homepage": "https://github.com/MrDiggles2/demeter#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "mqtt": "^4.2.4",
+    "sqlite": "^4.0.15",
+    "sqlite3": "^5.0.0"
+  }
+}
