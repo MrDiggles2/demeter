@@ -11,7 +11,7 @@ import mqtt from 'mqtt';
 
     await db.migrate();
 
-    const mqttClient  = mqtt.connect('mqtt://raspberrypi.local:1883');
+    const mqttClient = mqtt.connect('mqtt://raspberrypi.local:1883');
 
     mqttClient.on('connect', function () {
         mqttClient.subscribe('$SYS/demeter/readings/+/#', function (err, granted) {
@@ -23,29 +23,29 @@ import mqtt from 'mqtt';
         })
     });
 
-    mqttClient.on('message', function (topic, message) {
+    mqttClient.on('message', async (topic, message) => {
         const regex = /\$SYS\/demeter\/readings\/(?<name>.+)\/(?<field>.+)/;
         const results = regex.exec(topic);
 
         if (results && results.groups) {
             const { name, field } = results.groups;
-            test(name, field, message.toString());
+            await aggregate(name, field, message.toString());
         }
     });
 
     const data = {};
 
-    function test(name, field, value) {
+    async function aggregate(name, field, value) {
         if (!data[name]) {
             data[name] = {};
         }
 
         data[name][field] = value;
 
-        record(data);
+        await flush(data);
     }
 
-    function record(data) {
+    async function flush(data) {
         for(const name in data) {
             const {
                 raw,
@@ -63,7 +63,7 @@ import mqtt from 'mqtt';
 
             console.log("Logging reading: ", { name, raw, percent, max, min, addedAt });
 
-            db.run(`
+            await db.run(`
                 INSERT INTO Reading (name, raw, percent, max, min, addedAt)
                 VALUES ('${name}', ${raw}, ${percent}, ${max}, ${min}, ${addedAt})
             `);
@@ -74,9 +74,41 @@ import mqtt from 'mqtt';
     const port = process.env.PORT || 3000;
 
     app.get('/readings', async (req, res, next) => {
+        const startUnix = req.query.start_unix ?? Date.now() / 1000 - 60 * 60 * 1000;
+        const endUnix = req.query.end_unix ?? Date.now() / 1000;
+
         try {
-            const posts = await db.all('SELECT * FROM Reading ORDER BY addedAt DESC LIMIT 10');
-            res.send(posts);
+            const posts = await db.all(`
+                SELECT
+                    id,
+                    name,
+                    raw,
+                    percent,
+                    max,
+                    min,
+                    addedAt
+                FROM Reading
+                WHERE addedAt >= ${startUnix} AND addedAt <= ${endUnix}
+                ORDER BY addedAt DESC
+                LIMIT 10
+            `);
+
+            // Get unique "name" fields from results for debuggin
+            const includedSensors = Array.from(
+                new Set(
+                    posts.map(post => post.name)
+                )
+            );
+
+            res.send({
+                data: posts,
+                meta: {
+                    start_unix: startUnix,
+                    end_unix: endUnix,
+                    included_sensors: includedSensors
+                }
+            });
+
         } catch (err) {
             next(err);
         }
