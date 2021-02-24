@@ -56,9 +56,6 @@ import mqtt from 'mqtt';
                     id,
                     name,
                     raw,
-                    percent,
-                    max,
-                    min,
                     addedAt
                 FROM Reading
                 WHERE addedAt >= ${startUnix} AND addedAt <= ${endUnix}
