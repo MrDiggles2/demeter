@@ -5,7 +5,8 @@
   "main": "main.js",
   "scripts": {
     "dev": "nodemon main.js",
-    "start": "node main.js"
+    "start": "node main.js",
+    "install": "sudo cp demeter-aggregator.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl restart demeter-aggregator.service"
   },
   "type": "module",
   "repository": {
