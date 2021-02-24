@@ -1,11 +1,12 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
-#include <RTCVars.h>
 #include <Arduino.h>
 
 extern "C" {
   #include <user_interface.h>
 }
+
+int sleepTime = 1e6 * 60 * 60 * 6;
 
 const char* ssid     = "Bebes on Parade";
 const char* password = "lameepmeep";
@@ -17,11 +18,6 @@ const String sensorName = "jeff";
 
 PubSubClient client(espClient);
 
-int maxBound = 100;
-int minBound = 1024;
-
-RTCVars state; // state object for saving values between resets
-
 void blink() {
   digitalWrite(0, HIGH);
   delay(500);
@@ -31,60 +27,18 @@ void blink() {
 void setup() {
   Serial.begin(9600); // open serial port, set the baud rate to 9600 bps
   pinMode(0, OUTPUT);
-  digitalWrite(0, HIGH);
-
-  // Load in stored values if available
-
-  state.registerVar(&maxBound);
-  state.registerVar(&minBound);
-
-  if (state.loadFromRTC()) {
-    Serial.println('able to load in max/min values');
-  } else {
-    Serial.println('cold boot');
-  }
-
-  // Reset stored values if a hard reset is detected
-
-  rst_info *resetInfo;
-  resetInfo = ESP.getResetInfoPtr();
-
-  if (resetInfo->reason != REASON_DEEP_SLEEP_AWAKE) {
-    Serial.println("Hard reset detected. Resetting max (100) and min bounds (1024)");
-    maxBound = 100;
-    minBound = 1024;
-  }
-
 }
 
 void loop() {
   int moistureValue = analogRead(A0);
+  Serial.println("Recorded value: " + String(moistureValue));
+  publish(moistureValue);
 
-  maxBound = max(maxBound, moistureValue);
-  minBound = min(minBound, moistureValue);
-  state.saveToRTC();
-
-  Serial.println("Max: " + String(maxBound));
-  Serial.println("Min: " + String(minBound));
-
-  // If max and min are the same, "map" crashes. Wait for at least a small difference before continuing
-  if (maxBound == minBound) {
-    delay(200);
-    return;
-  }
-
-  int moisturePct = map(moistureValue, maxBound, minBound, 0, 100);
-
-  Serial.println(String(moistureValue) + " - " + String(moisturePct) + "%");
-  Serial.println("");
-
-  publish(moistureValue, moisturePct);
-
-  Serial.println("Sleeping for 5 seconds");
-  ESP.deepSleep(5e6);
+  Serial.println("Sleeping");
+  ESP.deepSleep(sleepTime);
 }
 
-void publish(int moistureValue, int moisturePct) {
+void publish(int moistureValue) {
   Serial.println("Connecting to " + String(ssid));
 
   delay(100);
@@ -111,7 +65,7 @@ void publish(int moistureValue, int moisturePct) {
   int attempts = 0;
   int maxAttempts = 3;
 
-    // Loop until we're reconnected
+  // Loop until we're reconnected
   while (!client.connected()) {
     if (attempts++ >= maxAttempts) {
       Serial.println("Reached max MQTT connection attempts");
@@ -133,16 +87,11 @@ void publish(int moistureValue, int moisturePct) {
 
   client.loop();
 
-  client.publish(("$SYS/demeter/readings/" + sensorName + "/max").c_str(), String(maxBound).c_str());
-  client.publish(("$SYS/demeter/readings/" + sensorName + "/min").c_str(), String(minBound).c_str());
-
   client.publish(("$SYS/demeter/readings/" + sensorName + "/raw").c_str(), String(moistureValue).c_str());
-  client.publish(("$SYS/demeter/readings/" + sensorName + "/percent").c_str(), String(moisturePct).c_str ());
 
   Serial.println("Published successfully");
-
+  
   client.disconnect();
 
   blink();
 }
-

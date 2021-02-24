@@ -24,51 +24,24 @@ import mqtt from 'mqtt';
     });
 
     mqttClient.on('message', function (topic, message) {
-        const regex = /\$SYS\/demeter\/readings\/(?<name>.+)\/(?<field>.+)/;
+        const regex = /\$SYS\/demeter\/readings\/(?<name>.+)\/raw$/;
         const results = regex.exec(topic);
 
-        if (results && results.groups) {
-            const { name, field } = results.groups;
-            test(name, field, message.toString());
+        if (!results || !results.groups) {
+            return;
         }
+
+        const { name } = results.groups;
+        const addedAt = Math.floor(Date.now() / 1000);
+        const rawValue = parseInt(message.toString());
+
+        console.log("Logging reading: ", { name, rawValue, addedAt });
+
+        db.run(`
+            INSERT INTO Reading (name, raw, addedAt)
+            VALUES ('${name}', ${rawValue}, ${addedAt})
+        `);
     });
-
-    const data = {};
-
-    function test(name, field, value) {
-        if (!data[name]) {
-            data[name] = {};
-        }
-
-        data[name][field] = value;
-
-        record(data);
-    }
-
-    function record(data) {
-        for(const name in data) {
-            const {
-                raw,
-                percent,
-                max,
-                min
-            } = data[name];
-
-            if (!(raw && percent && max && min)) {
-                continue;
-            }
-
-            data[name] = {};
-            const addedAt = Math.floor(Date.now() / 1000);
-
-            console.log("Logging reading: ", { name, raw, percent, max, min, addedAt });
-
-            db.run(`
-                INSERT INTO Reading (name, raw, percent, max, min, addedAt)
-                VALUES ('${name}', ${raw}, ${percent}, ${max}, ${min}, ${addedAt})
-            `);
-        }
-    }
 
     const app = express();
     const port = process.env.PORT || 3000;
