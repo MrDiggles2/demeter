@@ -4,8 +4,7 @@
   "description": "",
   "main": "main.js",
   "scripts": {
-    "dev": "nodemon main.js",
-    "start": "node main.js",
+    "start": "nodemon main.js",
     "install-service": "sudo cp demeter-aggregator.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl restart demeter-aggregator.service && sudo systemctl status demeter-aggregator.service --no-pager"
   },
   "type": "module",
