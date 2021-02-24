@@ -21,7 +21,7 @@
     "express": "^4.17.1",
     "mqtt": "^4.2.4",
     "sqlite": "^4.0.15",
-    "sqlite3": "^5.0.0"
+    "sqlite3": "^5.0.2"
   },
   "devDependencies": {
     "nodemon": "^2.0.6"
