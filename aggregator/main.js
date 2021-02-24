@@ -47,8 +47,7 @@ import mqtt from 'mqtt';
     const port = process.env.PORT || 3000;
 
     app.get('/readings', async (req, res, next) => {
-        const startUnix = req.query.start_unix ?? Date.now() / 1000 - 60 * 60 * 1000;
-        const endUnix = req.query.end_unix ?? Date.now() / 1000;
+        const count = req.query.count ?? 10;
 
         try {
             const posts = await db.all(`
@@ -58,9 +57,8 @@ import mqtt from 'mqtt';
                     raw,
                     addedAt
                 FROM Reading
-                WHERE addedAt >= ${startUnix} AND addedAt <= ${endUnix}
-                ORDER BY addedAt DESC
-                LIMIT 10
+                ORDER BY id DESC
+                LIMIT ${count}
             `);
 
             // Get unique "name" fields from results for debuggin
@@ -73,8 +71,7 @@ import mqtt from 'mqtt';
             res.send({
                 data: posts,
                 meta: {
-                    start_unix: startUnix,
-                    end_unix: endUnix,
+                    requested_count: count,
                     included_sensors: includedSensors
                 }
             });
