@@ -1,0 +1,12 @@
+[Unit]
+Description=Demeter Aggregator
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+ExecStart=npm start --prefix /home/pi/dev/demeter/aggregator | tee /var/log/demeter/aggregator.log
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
