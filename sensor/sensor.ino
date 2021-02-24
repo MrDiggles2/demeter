@@ -7,6 +7,7 @@ extern "C" {
 }
 
 int sleepTime = 1e6 * 60 * 60 * 6;
+const String sensorName = "jeff";
 
 const char* ssid     = "Bebes on Parade";
 const char* password = "lameepmeep";
@@ -14,8 +15,6 @@ const char* password = "lameepmeep";
 WiFiClient espClient;
 
 const char* mqttHost = "raspberrypi.local";
-const String sensorName = "jeff";
-
 PubSubClient client(espClient);
 
 void blink() {
@@ -34,7 +33,7 @@ void loop() {
   Serial.println("Recorded value: " + String(moistureValue));
   publish(moistureValue);
 
-  Serial.println("Sleeping");
+  Serial.println("Sleeping for " + String(sleepTime) + "uS");
   ESP.deepSleep(sleepTime);
 }
 
