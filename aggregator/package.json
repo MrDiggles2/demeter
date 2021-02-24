@@ -2,9 +2,9 @@
   "name": "demeter",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "main.js",
   "scripts": {
-    "start": "nodemon index.js"
+    "start": "nodemon main.js"
   },
   "type": "module",
   "repository": {

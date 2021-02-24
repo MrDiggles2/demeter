@@ -88,9 +88,8 @@ void publish(int moistureValue) {
   client.loop();
 
   client.publish(("$SYS/demeter/readings/" + sensorName + "/raw").c_str(), String(moistureValue).c_str());
-
   Serial.println("Published successfully");
-  
+
   client.disconnect();
 
   blink();
