@@ -69,7 +69,12 @@ import mqtt from 'mqtt';
             );
 
             res.send({
-                data: posts,
+                data: posts.map(post => {
+                    return {
+                        ...post,
+                        ts: new Date(post.addedAt * 1000).toISOString()
+                    };
+                }),
                 meta: {
                     requested_count: count,
                     included_sensors: includedSensors

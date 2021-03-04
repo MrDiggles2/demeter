@@ -6,7 +6,6 @@ extern "C" {
   #include <user_interface.h>
 }
 
-int sleepTime = 1e6 * 60 * 60 * 6;
 const String sensorName = "jeff";
 
 const char* ssid     = "Bebes on Parade";
@@ -18,25 +17,12 @@ const char* mqttHost = "raspberrypi.local";
 PubSubClient client(espClient);
 
 void blink() {
-  digitalWrite(0, HIGH);
-  delay(500);
   digitalWrite(0, LOW);
+  delay(500);
+  digitalWrite(0, HIGH);
 }
 
-void setup() {
-  Serial.begin(9600); // open serial port, set the baud rate to 9600 bps
-  pinMode(0, OUTPUT);
-}
-
-void loop() {
-  int moistureValue = analogRead(A0);
-  Serial.println("Recorded value: " + String(moistureValue));
-  publish(moistureValue);
-
-  Serial.println("Sleeping for " + String(sleepTime) + "uS");
-  ESP.deepSleep(sleepTime);
-}
-
+// Publishes moisture value
 void publish(int moistureValue) {
   Serial.println("Connecting to " + String(ssid));
 
@@ -90,6 +76,69 @@ void publish(int moistureValue) {
   Serial.println("Published successfully");
 
   client.disconnect();
+}
 
+// From https://github.com/ohel/analogging/blob/master/src/main.cpp
+// Sleeps for provided number of hours, with special consideration when reset is triggered
+void deepSleepCycle(uint32_t hours, bool end_of_setup = false) {
+
+  uint32_t reset_counter = 0;
+  bool waking_from_sleep = ESP.getResetReason() == "Deep-Sleep Wake";
+
+  if (!end_of_setup) {
+    if (waking_from_sleep) {
+        ESP.rtcUserMemoryRead(0, &reset_counter, sizeof(reset_counter));
+        reset_counter++;
+        ESP.rtcUserMemoryWrite(0, &reset_counter, sizeof(reset_counter));
+        Serial.println("Waking up from deep-sleep, progress: " + String(reset_counter) + "/" + String(hours));
+    } else {
+        ESP.rtcUserMemoryWrite(0, &reset_counter, sizeof(reset_counter));
+        Serial.println("Hard reset: zeroing reset counter.");
+        return;
+    }
+  }
+
+  // With larger values, deep-sleep is unrealiable: it might never wake up and consume a lot of power.
+  // Therefore sleep one hour at a time.
+  // In reality, the ESP sleeps a bit less than the 60 minutes it is told to.
+  if (reset_counter < hours) {
+    // If this is the first time going to sleep, do the radio calibration once.
+    // Otherwise, disable radio (WiFi).
+    RFMode wake_mode = waking_from_sleep ? WAKE_RF_DISABLED : WAKE_RFCAL;
+    if (reset_counter + 1 == hours) {
+        // Wake up with radio on if the next power cycle finishes sleeping.
+        wake_mode = WAKE_NO_RFCAL;
+    }
+
+    // 1: WAKE_RFCAL
+    // 2: WAKE_NO_RFCAL
+    // 4: WAKE_RF_DISABLED
+    Serial.println("Radio mode will be: " + String(wake_mode));
+    ESP.deepSleep(3600 * 1e6, wake_mode);
+  }
+  reset_counter = 0;
+  ESP.rtcUserMemoryWrite(0, &reset_counter, sizeof(reset_counter));
+
+}
+
+/////////////////////
+// Start main loop //
+/////////////////////
+
+void setup() {
+  Serial.begin(9600); // open serial port, set the baud rate to 9600 bps
+  pinMode(0, OUTPUT);
+
+  deepSleepCycle(12);
+
+  int moistureValue = analogRead(A0);
+  Serial.println("Recorded value: " + String(moistureValue));
+  publish(moistureValue);
   blink();
+
+  deepSleepCycle(12, true);
+}
+
+void loop() {
+  // deep sleep restarts esp, setup() acts as loop
 }
