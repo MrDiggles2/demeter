@@ -86,6 +86,8 @@ import mqtt from 'mqtt';
         }
     });
 
+    app.use('/views', express.static('views'))
+
     app.listen(port, () => {
         console.log(`Listening at http://localhost:${port}`)
     });
