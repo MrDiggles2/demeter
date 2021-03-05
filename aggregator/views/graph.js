@@ -1,39 +1,49 @@
 
 import Chartist from 'chartist';
 import moment from 'moment';
+import ChartistPluginLegend from 'chartist-plugin-legend';
+new ChartistPluginLegend(); //without this line, you get 'Chartist.plugins undefined'
 
-var chart = new Chartist.Line('.ct-chart', {
-    series: [
-      {
-        name: 'series-1',
-        data: [
-          {x: new Date(143134652600), y: 53},
-          {x: new Date(143234652600), y: 40},
-          {x: new Date(143340052600), y: 45},
-          {x: new Date(143366652600), y: 40},
-          {x: new Date(143410652600), y: 20},
-          {x: new Date(143508652600), y: 32},
-          {x: new Date(143569652600), y: 18},
-          {x: new Date(143579652600), y: 11}
+(async () => {
+    const response = await fetch('http://localhost:3000/readings?count=100').then(res => res.json());
+
+    const data = response.data.reduce((acc, point) => {
+        const { name, ts, raw } = point;
+
+        if (!acc[name]) {
+            acc[name] = [];
+        }
+
+        acc[name].push({ x: new Date(ts), y: raw });
+
+        return acc;
+    }, {});
+
+    const options = {
+        axisX: {
+            type: Chartist.FixedScaleAxis,
+            divisor: 5,
+            labelInterpolationFnc: function(value) {
+                return moment(value).format('MMM D');
+            }
+        },
+        lineSmooth: false,
+        plugins: [
+            Chartist.plugins.legend()
         ]
-      },
-      {
-        name: 'series-2',
-        data: [
-          {x: new Date(143134652600), y: 53},
-          {x: new Date(143234652600), y: 35},
-          {x: new Date(143334652600), y: 30},
-          {x: new Date(143384652600), y: 30},
-          {x: new Date(143568652600), y: 10}
-        ]
-      }
-    ]
-  }, {
-    axisX: {
-      type: Chartist.FixedScaleAxis,
-      divisor: 5,
-      labelInterpolationFnc: function(value) {
-        return moment(value).format('MMM D');
-      }
-    }
-  });
+    };
+
+    var chart = new Chartist.Line(
+        '.ct-chart',
+        {
+            series: Object.keys(data).map(name => {
+                return {
+                    name,
+                    data: data[name].reverse() // order matters, start with lower values
+                };
+            })
+        },
+        options
+    );
+
+})();

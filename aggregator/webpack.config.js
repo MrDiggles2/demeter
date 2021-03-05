@@ -1,7 +1,7 @@
 import path from 'path';
 
 export default {
-  mode: 'production',
+  mode: 'development',
   entry: [
     './views/graph.js',
     './views/graph.scss'
