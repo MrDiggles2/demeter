@@ -2,6 +2,7 @@ import express from 'express';
 import * as sqlite from 'sqlite';
 import sqlite3 from 'sqlite3';
 import mqtt from 'mqtt';
+import cors from 'cors';
 
 (async() => {
     const db = await sqlite.open({
@@ -46,6 +47,9 @@ import mqtt from 'mqtt';
     const app = express();
     const port = process.env.PORT || 3000;
 
+    app.use('/views', express.static('views'))
+    app.use(cors());
+
     app.get('/readings', async (req, res, next) => {
         const count = req.query.count ?? 10;
 
@@ -85,8 +89,6 @@ import mqtt from 'mqtt';
             next(err);
         }
     });
-
-    app.use('/views', express.static('views'))
 
     app.listen(port, () => {
         console.log(`Listening at http://localhost:${port}`)
