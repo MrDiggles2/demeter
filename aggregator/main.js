@@ -61,6 +61,7 @@ import cors from 'cors';
                     raw,
                     addedAt
                 FROM Reading
+                ${req.query.names ? `WHERE name IN (${req.query.names.split(',').map(n => `'${n}'`).join(',')})` : ''}
                 ORDER BY id DESC
                 LIMIT ${count}
             `);
