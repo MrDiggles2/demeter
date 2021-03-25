@@ -5,8 +5,8 @@ import ChartistPluginLegend from 'chartist-plugin-legend';
 new ChartistPluginLegend(); //without this line, you get 'Chartist.plugins undefined'
 
 (async () => {
-    const response = await fetch('/readings?count=100').then(res => res.json());
-
+    const response = await fetch(`http://raspberrypi.local:3000/readings${window.location.search}`).then(res => res.json());
+    
     const data = response.data.reduce((acc, point) => {
         const { name, ts, raw } = point;
 
