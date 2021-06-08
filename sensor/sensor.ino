@@ -6,11 +6,13 @@ extern "C" {
   #include <user_interface.h>
 }
 
-const String sensorName = "test-2x3h";
+const String sensorName = "ignore";
+
+const byte SENSOR_OUT = A0;
+const byte SENSOR_VCC = D1;
 
 const char* ssid     = "Bebes on Parade";
 const char* password = "lameepmeep";
-
 WiFiClient espClient;
 
 const char* mqttHost = "raspberrypi.local";
@@ -73,6 +75,23 @@ void publish(int moistureValue) {
 }
 
 
+// Reads moisture value from sensor
+int readMoisture() {
+  // Power up the sensor
+  digitalWrite(SENSOR_VCC, 1);
+
+  // Wait a little for it get fully powered
+  delay(500);
+
+  int moistureValue = analogRead(SENSOR_OUT);
+  Serial.println("Recorded value: " + String(moistureValue));
+
+  // Power down the sensor
+  digitalWrite(SENSOR_VCC, 0);
+
+  return moistureValue;
+}
+
 // Enter max deep sleep cycle the provided number of times. This is usually around 3.5 hours
 void deepSleepCycles(uint32_t numCycles) {
   // Read counter from memory
@@ -87,7 +106,8 @@ void deepSleepCycles(uint32_t numCycles) {
 
   if (resetCounter <= numCycles) {
 //    ESP.deepSleep(ESP.deepSleepMax());
-    ESP.deepSleep(1e6 * 60 * 60 * 3);
+//    ESP.deepSleep(1e6 * 60 * 60 * 3);
+    ESP.deepSleep(1e6 * 60 * 60);
   } else {
     Serial.println("Deep sleep complete!");
   }
@@ -105,7 +125,10 @@ void resetSleepCounter() {
 /////////////////////
 
 void setup() {
-  Serial.begin(9600); // open serial port, set the baud rate to 9600 bps
+  Serial.begin(9600);
+
+  pinMode(SENSOR_VCC, OUTPUT);
+  digitalWrite(SENSOR_VCC, 0);
 
   // Reset counter if hard reset is detected
 
@@ -119,12 +142,9 @@ void setup() {
     deepSleepCycles(2);
   }
 
-  // Read and push sensor value
-  int moistureValue = analogRead(A0);
-  Serial.println("Recorded value: " + String(moistureValue));
+  int moistureValue = readMoisture();
   publish(moistureValue);
 
-  
   // Sleep for 2 cycles, 7-8 hours
   deepSleepCycles(2);
 }
