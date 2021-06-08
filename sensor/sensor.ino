@@ -138,14 +138,14 @@ void setup() {
     Serial.println("Hard reset: zeroing reset counter.");
     resetSleepCounter();
   } else {
-    // Sleep for 2 cycles, 7-8 hours
+    // Sleep for 2 cycles, ~2 hours
     deepSleepCycles(2);
   }
 
   int moistureValue = readMoisture();
   publish(moistureValue);
 
-  // Sleep for 2 cycles, 7-8 hours
+  // Sleep for 2 cycles, ~2 hours
   deepSleepCycles(2);
 }
 
