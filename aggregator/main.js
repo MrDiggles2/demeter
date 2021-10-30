@@ -129,7 +129,8 @@ const TIMEOUT_MS = 24 *  60 * 60 * 1000;
 
                         return {
                             name,
-                            value: raw,
+                            // TODO: replace this with some kind of calculation based on "raw" later
+                            value: 50,
                             isAlive: (Date.now() - (addedAt * 1000)) < TIMEOUT_MS,
                             raw: post
                         };
