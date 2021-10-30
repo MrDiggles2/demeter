@@ -3,6 +3,9 @@ import * as sqlite from 'sqlite';
 import sqlite3 from 'sqlite3';
 import mqtt from 'mqtt';
 import cors from 'cors';
+import morgan from 'morgan';
+
+const TIMEOUT_MS = 24 *  60 * 60 * 1000;
 
 (async() => {
     const db = await sqlite.open({
@@ -46,9 +49,13 @@ import cors from 'cors';
 
     const app = express();
     const port = process.env.PORT || 3000;
+    app.listen(port, () => {
+        console.log(`Listening at http://localhost:${port}`)
+    });
+    app.use(cors());
+    app.use(morgan('tiny'));
 
     app.use('/views', express.static('views'))
-    app.use(cors());
 
     app.get('/readings', async (req, res, next) => {
         const count = req.query.count ?? 10;
@@ -81,8 +88,10 @@ import cors from 'cors';
                     };
                 }),
                 meta: {
-                    requested_count: count,
-                    included_sensors: includedSensors
+                    query: {
+                        count
+                    },
+                    includedSensors
                 }
             });
 
@@ -91,7 +100,49 @@ import cors from 'cors';
         }
     });
 
-    app.listen(port, () => {
-        console.log(`Listening at http://localhost:${port}`)
+    app.get('/status', async (req, res, next) => {
+        const ignorePattern = req.query.ignorePattern ?? null;
+
+        try {
+            const posts = await db.all(`
+                SELECT r1.*
+                FROM Reading r1
+                LEFT OUTER JOIN Reading r2
+                    ON r1.name = r2.name AND r1.id < r2.id
+                WHERE r2.id IS null
+            `);
+
+            res.send({
+                data: posts
+                    .filter(post => {
+                        const { name } = post;
+
+                        if (ignorePattern === null) {
+                            return true;
+                        }
+
+                        var regex = new RegExp(ignorePattern, 'g');
+                        return !regex.test(name);
+                    })
+                    .map(post => {
+                        const { name, raw, addedAt } = post;
+
+                        return {
+                            name,
+                            value: raw,
+                            isAlive: (Date.now() - (addedAt * 1000)) < TIMEOUT_MS,
+                            raw: post
+                        };
+                    }
+                ),
+                meta: {
+                    query: {
+                        ignorePattern
+                    }
+                }
+            });
+        } catch (err) {
+            next(err);
+        }
     });
 })();
