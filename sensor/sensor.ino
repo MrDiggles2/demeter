@@ -105,8 +105,6 @@ void deepSleepCycles(uint32_t numCycles) {
   ESP.rtcUserMemoryWrite(0, &resetCounter, sizeof(resetCounter));
 
   if (resetCounter <= numCycles) {
-//    ESP.deepSleep(ESP.deepSleepMax());
-//    ESP.deepSleep(1e6 * 60 * 60 * 3);
     ESP.deepSleep(1e6 * 60 * 60);
   } else {
     Serial.println("Deep sleep complete!");
@@ -138,15 +136,13 @@ void setup() {
     Serial.println("Hard reset: zeroing reset counter.");
     resetSleepCounter();
   } else {
-    // Sleep for 2 cycles, ~2 hours
-    deepSleepCycles(2);
+    deepSleepCycles(6);
   }
 
   int moistureValue = readMoisture();
   publish(moistureValue);
 
-  // Sleep for 2 cycles, ~2 hours
-  deepSleepCycles(2);
+  deepSleepCycles(6);
 }
 
 void loop() {
