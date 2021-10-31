@@ -130,7 +130,7 @@ const TIMEOUT_MS = 24 *  60 * 60 * 1000;
                         return {
                             name,
                             // TODO: replace this with some kind of calculation based on "raw" later
-                            value: 50,
+                            value: Math.round(Math.random() * 80 + 20),
                             isAlive: (Date.now() - (addedAt * 1000)) < TIMEOUT_MS,
                         };
                     }
