@@ -4,6 +4,7 @@ import sqlite3 from 'sqlite3';
 import mqtt from 'mqtt';
 import cors from 'cors';
 import morgan from 'morgan';
+import regression from 'regression';
 
 const TIMEOUT_MS = 24 *  60 * 60 * 1000;
 
@@ -39,7 +40,7 @@ const TIMEOUT_MS = 24 *  60 * 60 * 1000;
         const addedAt = Math.floor(Date.now() / 1000);
         const rawValue = parseInt(message.toString());
 
-        console.log("Logging reading: ", { name, rawValue, addedAt });
+        console.log(`Logging reading: ${JSON.stringify({ name, rawValue, addedAt }, null, 4)}`);
 
         db.run(`
             INSERT INTO Reading (name, raw, addedAt)
@@ -145,4 +146,54 @@ const TIMEOUT_MS = 24 *  60 * 60 * 1000;
             next(err);
         }
     });
+
+    app.get('/regression', async (req, res, next) => {
+        
+        const posts = await db.all(`
+            select raw, addedAt from Reading
+            where
+                name = "pcb-test-w-220uF-new-resistors"
+                AND id < 4516 and id > 3460
+            order by id desc
+        `);
+
+        const filtered = posts.filter((_, i) => {
+            return true;
+        });
+
+        const results = [];
+
+        for (let i = 0; i < filtered.length; i += 3) {
+            const set = [];
+
+            for (let j = 0; j < 10; j++) {
+                if (!filtered[i + j]) continue;
+
+                set.push(filtered[i + j]);
+            }
+
+            console.log(set.map(val => [ val.addedAt, val.raw ]));
+
+            const result = regression.logarithmic(
+                set.map(val => [ val.addedAt, val.raw ]),
+                {
+                    order: 2,
+                    precision: 10,
+                }
+            );
+
+            console.log(result);
+
+            const [ a, b ] = result.equation;
+            results.push({
+                a: a.toExponential(),
+                b: b.toExponential(),
+                lastTs: new Date(set[set.length - 1].addedAt * 1000)
+            });
+        };
+
+        res.send(results);
+    });
 })();
+
+
