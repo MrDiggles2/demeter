@@ -5,24 +5,20 @@ import ChartistPluginLegend from 'chartist-plugin-legend';
 new ChartistPluginLegend(); //without this line, you get 'Chartist.plugins undefined'
 
 (async () => {
-    const response = await fetch(`/readings${window.location.search}`).then(res => res.json());
+    const response = await fetch(`/regression${window.location.search}`).then(res => res.json());
     
     const data = response.data.reduce((acc, point) => {
-        const { name, ts, raw } = point;
+        const { rate, tip, lastTs } = point;
 
-        if (!acc[name]) {
-            acc[name] = [];
-        }
-
-        acc[name].push({ x: new Date(ts), y: raw });
+        acc.push({ x: new Date(lastTs), y: rate });
 
         return acc;
-    }, {});
+    }, []);
 
     const options = {
         axisX: {
             type: Chartist.FixedScaleAxis,
-            divisor: 5,
+            // divisor: 5,
             labelInterpolationFnc: function(value) {
                 return moment(value).format('MMM D');
             }
@@ -36,12 +32,10 @@ new ChartistPluginLegend(); //without this line, you get 'Chartist.plugins undef
     var chart = new Chartist.Line(
         '.ct-chart',
         {
-            series: Object.keys(data).map(name => {
-                return {
-                    name,
-                    data: data[name].reverse() // order matters, start with lower values
-                };
-            })
+            series: [{
+                name: 'reg',
+                data: data.reverse(),
+            }]
         },
         options
     );

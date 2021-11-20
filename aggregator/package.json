@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/MrDiggles2/demeter#readme",
   "dependencies": {
+    "@stdlib/stats-base-dists-logistic-stdev": "^0.0.6",
     "chartist": "^0.11.4",
     "chartist-plugin-legend": "^0.6.2",
     "cors": "^2.8.5",
@@ -30,7 +31,8 @@
     "mqtt": "^4.2.4",
     "regression": "^2.0.1",
     "sqlite": "^4.0.15",
-    "sqlite3": "^5.0.2"
+    "sqlite3": "^5.0.2",
+    "stats-lite": "^2.2.0"
   },
   "devDependencies": {
     "css-loader": "^5.1.1",

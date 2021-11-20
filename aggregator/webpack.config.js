@@ -2,13 +2,13 @@ import path from 'path';
 
 export default {
   mode: 'development',
-  entry: [
-    './views/graph.js',
-    './views/graph.scss'
-  ],
+  entry: {
+    graph: [ './views/graph.js', './views/graph.scss' ],
+    regression: [ './views/regression.js', './views/regression.scss' ]
+  },
   output: {
     path: path.resolve('views', 'dist'), 
-    filename: 'graph.min.js',
+    filename: '[name].min.js',
     clean: true,
   },
   module: {

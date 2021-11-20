@@ -5,6 +5,8 @@ import mqtt from 'mqtt';
 import cors from 'cors';
 import morgan from 'morgan';
 import regression from 'regression';
+import stdev from '@stdlib/stats-base-dists-logistic-stdev';
+import stats from 'stats-lite';
 
 const TIMEOUT_MS = 24 *  60 * 60 * 1000;
 
@@ -69,7 +71,8 @@ const TIMEOUT_MS = 24 *  60 * 60 * 1000;
                     raw,
                     addedAt
                 FROM Reading
-                ${req.query.names ? `WHERE name IN (${req.query.names.split(',').map(n => `'${n}'`).join(',')})` : ''}
+                WHERE id < 4516 AND id > 3460
+                ${req.query.names ? `AND name IN (${req.query.names.split(',').map(n => `'${n}'`).join(',')})` : ''}
                 ORDER BY id DESC
                 LIMIT ${count}
             `);
@@ -162,37 +165,67 @@ const TIMEOUT_MS = 24 *  60 * 60 * 1000;
         });
 
         const results = [];
+        const isNumberWithinPercentOfNumber = (n1, n2, percentage) => percentage > Math.abs(Math.abs(n2 - n1) / n2) * 100.0;
 
-        for (let i = 0; i < filtered.length; i += 3) {
+        for (let i = 300; i < filtered.length; i++) {
             const set = [];
+            for (let j = 0; j < 300; j++) {
+                const before = filtered[i - j - 1];
+                const current = filtered[i - j];
+                const after = filtered[i - j + 1];
 
-            for (let j = 0; j < 10; j++) {
-                if (!filtered[i + j]) continue;
+                if (!current) continue;
 
-                set.push(filtered[i + j]);
+                if (
+                    before && after
+                    && isNumberWithinPercentOfNumber(before.raw, current.raw, 10)
+                    && isNumberWithinPercentOfNumber(after.raw, current.raw, 10)
+                ) {
+                    set.push(current);
+                }
             }
 
-            console.log(set.map(val => [ val.addedAt, val.raw ]));
+            const oldestDate = Math.min(...set.map(val => val.addedAt)) - 100;
+            const points = set
+                .map(val => [ (val.addedAt - oldestDate) / 60 / 60, val.raw ])
+                .reverse();
 
-            const result = regression.logarithmic(
-                set.map(val => [ val.addedAt, val.raw ]),
+            const stddev = stats.stdev(set
+                .filter(p => p.raw !== null && !Number.isNaN(p.raw))
+                .map(p => p.raw));
+            // console.log(stddev);
+
+            const result = regression.linear(
+            // const result = regression.logarithmic(
+                points,
                 {
-                    order: 2,
                     precision: 10,
                 }
             );
 
-            console.log(result);
-
             const [ a, b ] = result.equation;
             results.push({
-                a: a.toExponential(),
-                b: b.toExponential(),
-                lastTs: new Date(set[set.length - 1].addedAt * 1000)
+                rate: a,
+                // rate: b,
+                // rate: stddev,
+                tip: set[set.length - 1].raw,
+                lastTs: (new Date(set[set.length - 1].addedAt * 1000)).toISOString()
             });
         };
 
-        res.send(results);
+        const filteredResults = results.filter(r => r.rate !== null && !Number.isNaN(r.rate) && r.rate < 1);
+
+        res.send({
+            tip: {
+                max: Math.max(...filteredResults.map(r => r.tip)),
+                min: Math.min(...filteredResults.map(r => r.tip)),
+            },
+            rate: {
+                max: Math.max(...filteredResults.map(r => r.rate)),
+                min: Math.min(...filteredResults.map(r => r.rate))
+            },
+            data: filteredResults
+        });
     });
 })();
 
