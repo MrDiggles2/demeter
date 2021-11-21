@@ -4,6 +4,7 @@ import sqlite3 from 'sqlite3';
 import mqtt from 'mqtt';
 import cors from 'cors';
 import morgan from 'morgan';
+import { DBService } from './db.service';
 
 const TIMEOUT_MS = 24 *  60 * 60 * 1000;
 
@@ -12,9 +13,7 @@ const TIMEOUT_MS = 24 *  60 * 60 * 1000;
         filename: './database.sqlite',
         driver: sqlite3.Database
     });
-
-    await db.migrate();
-
+    const dbService = new DBService(db);
     const mqttClient = mqtt.connect('mqtt://raspberrypi.local:1883');
 
     mqttClient.on('connect', function () {
@@ -27,7 +26,7 @@ const TIMEOUT_MS = 24 *  60 * 60 * 1000;
         })
     });
 
-    mqttClient.on('message', function (topic, message) {
+    mqttClient.on('message', async (topic, message) => {
         const regex = /\$SYS\/demeter\/readings\/(?<name>.+)\/raw$/;
         const results = regex.exec(topic);
 
@@ -36,15 +35,11 @@ const TIMEOUT_MS = 24 *  60 * 60 * 1000;
         }
 
         const { name } = results.groups;
-        const addedAt = Math.floor(Date.now() / 1000);
-        const rawValue = parseInt(message.toString());
+        const value = parseInt(message.toString());
 
-        console.log("Logging reading: ", { name, rawValue, addedAt });
+        console.log("Logging reading: ", { name, value });
 
-        db.run(`
-            INSERT INTO Reading (name, raw, addedAt)
-            VALUES ('${name}', ${rawValue}, ${addedAt})
-        `);
+        await dbService.recordReading(name, value);
     });
 
     const app = express();
