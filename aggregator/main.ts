@@ -52,48 +52,19 @@ const TIMEOUT_MS = 24 *  60 * 60 * 1000;
 
     app.use('/views', express.static('views'))
 
-    app.get('/readings', async (req, res, next) => {
-        const count = req.query.count ?? 10;
-        const sensorNames = req.query.names?.toString() ?? null;
+    app.get('/readings', async (req, res) => {
+        const count = parseInt(req.query.count?.toString() ?? '10');
+        const sensorNames = req.query.names?.toString().split(',') ?? [];
 
-        try {
-            const posts = await db.all(`
-                SELECT
-                    id,
-                    name,
-                    raw,
-                    addedAt
-                FROM Reading
-                ${sensorNames ? `WHERE name IN (${sensorNames.split(',').map(n => `'${n}'`).join(',')})` : ''}
-                ORDER BY id DESC
-                LIMIT ${count}
-            `);
+        const readings = await dbService.getReadings(sensorNames, count);
 
-            // Get unique "name" fields from results for debuggin
-            const includedSensors = Array.from(
-                new Set(
-                    posts.map(post => post.name)
-                )
-            );
-
-            res.send({
-                data: posts.map(post => {
-                    return {
-                        ...post,
-                        ts: new Date(post.addedAt * 1000).toISOString()
-                    };
-                }),
-                meta: {
-                    query: {
-                        count
-                    },
-                    includedSensors
-                }
-            });
-
-        } catch (err) {
-            next(err);
-        }
+        res.send({
+            data: readings.map(reading => ({
+                ...reading,
+                ts: new Date(reading.addedAt * 1000).toISOString()
+            })),
+            meta: { count }
+        });
     });
 
     app.get('/status', async (req, res, next) => {

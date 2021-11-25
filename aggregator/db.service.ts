@@ -9,6 +9,13 @@ export interface Sensor {
     ignore: number;
 }
 
+export interface Reading {
+    id: number;
+    sensorId: number;
+    raw: number;
+    addedAt: number;
+}
+
 export class DBService {
     constructor(private db: sqlite.Database) {}
 
@@ -20,6 +27,20 @@ export class DBService {
             `INSERT INTO Reading (sensorId, raw, addedAt) VALUES (?, ?, ?)`,
             sensor.id, value, addedAt
         );
+    }
+
+    public async getReadings(names: string[], count: number): Promise<Reading[]> {
+        return this.db.all<Reading[]>(`
+            SELECT
+                id,
+                name,
+                raw,
+                addedAt
+            FROM Reading
+            ${names ? `WHERE name IN (${names.map(n => `'${n}'`).join(',')})` : ''}
+            ORDER BY id DESC
+            LIMIT ${count}
+        `);
     }
 
     private async findOrCreateSensorByName(name: string): Promise<Sensor> {
