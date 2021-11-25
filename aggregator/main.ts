@@ -54,6 +54,7 @@ const TIMEOUT_MS = 24 *  60 * 60 * 1000;
 
     app.get('/readings', async (req, res, next) => {
         const count = req.query.count ?? 10;
+        const sensorNames = req.query.names?.toString() ?? null;
 
         try {
             const posts = await db.all(`
@@ -63,7 +64,7 @@ const TIMEOUT_MS = 24 *  60 * 60 * 1000;
                     raw,
                     addedAt
                 FROM Reading
-                ${req.query.names ? `WHERE name IN (${req.query.names.split(',').map(n => `'${n}'`).join(',')})` : ''}
+                ${sensorNames ? `WHERE name IN (${sensorNames.split(',').map(n => `'${n}'`).join(',')})` : ''}
                 ORDER BY id DESC
                 LIMIT ${count}
             `);
@@ -96,7 +97,7 @@ const TIMEOUT_MS = 24 *  60 * 60 * 1000;
     });
 
     app.get('/status', async (req, res, next) => {
-        const ignorePattern = req.query.ignorePattern ?? null;
+        const ignorePattern = req.query.ignorePattern?.toString() ?? null;
 
         try {
             const posts = await db.all(`
