@@ -1,18 +1,16 @@
 import * as path from 'path';
-import { fileURLToPath } from 'url';
 import * as sqlite from 'sqlite';
 import sqlite3 from 'sqlite3';
 import { DBService } from '../db.service';
 
 describe('DB service', () => {
 
-    let db = null;
-    let dbService = null;
+    let db: sqlite.Database;
+    let dbService: DBService;
 
     beforeEach(async () => {
         if (db) {
             await db.close();
-            db = null;
         }
 
         db = await sqlite.open({
@@ -20,8 +18,6 @@ describe('DB service', () => {
             driver: sqlite3.Database
         });
 
-        const __filename = fileURLToPath(import.meta.url);
-        const __dirname = path.dirname(__filename);
         await db.migrate({
             migrationsPath: path.join(__dirname, '..', 'migrations')
         });
