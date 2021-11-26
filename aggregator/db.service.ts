@@ -68,7 +68,7 @@ export class DBService {
             statuses.push({
                 sensor,
                 latestReading,
-                isAlive: await this.isSensorAlive(sensor),
+                isAlive: await this.isSensorAlive(sensor, latestReading),
                 moisturePercentage: await this.calculateMoisturePercentage(sensor),
             });
         }
@@ -76,9 +76,9 @@ export class DBService {
         return statuses;
     }
 
-    private async isSensorAlive(sensor: Sensor): Promise<boolean> {
-        // TODO
-        return true;
+    private async isSensorAlive(sensor: Sensor, reading: Reading): Promise<boolean> {
+        // Consider sensor dead if latest reading was more than a week ago
+        return (Date.now() - (reading.addedAt * 1000)) > 7 * 24 * 60 * 60 * 1000;
     }
 
     private async calculateMoisturePercentage(sensor: Sensor): Promise<number> {
