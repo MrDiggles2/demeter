@@ -39,13 +39,14 @@ export class DBService {
     public async getReadings(names: string[], count: number): Promise<Reading[]> {
         return this.db.all<Reading[]>(`
             SELECT
-                id,
-                name,
+                Reading.id,
+                sensorId
                 raw,
                 addedAt
             FROM Reading
-            ${names ? `WHERE name IN (${names.map(n => `'${n}'`).join(',')})` : ''}
-            ORDER BY id DESC
+            LEFT JOIN Sensor ON Sensor.id = Reading.sensorId
+            ${names.length ? `WHERE Sensor.name IN (${names.map(n => `'${n}'`).join(',')})` : ''}
+            ORDER BY Reading.id DESC
             LIMIT ${count}
         `);
     }
