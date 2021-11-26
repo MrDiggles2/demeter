@@ -9,6 +9,13 @@ export interface Sensor {
     ignore: number;
 }
 
+export interface SensorStatus {
+    sensor: Sensor;
+    latestReading: Reading;
+    isAlive: boolean;
+    moisturePercentage: number;
+}
+
 export interface Reading {
     id: number;
     sensorId: number;
@@ -41,6 +48,45 @@ export class DBService {
             ORDER BY id DESC
             LIMIT ${count}
         `);
+    }
+
+    public async getSensorStatuses(): Promise<SensorStatus[]> {
+        const statuses: SensorStatus[] = [];
+
+        const latestReadings = await this.db.all<Array<Reading>>(`
+            SELECT r1.*
+            FROM Reading r1
+            LEFT OUTER JOIN Reading r2
+                ON r1.sensorId = r2.sensorId AND r1.id < r2.id
+            WHERE r2.id IS null
+        `);
+
+        for (const latestReading of latestReadings) {
+            const sensor = await this.findSensorById(latestReading.sensorId);
+
+            statuses.push({
+                sensor,
+                latestReading,
+                isAlive: await this.isSensorAlive(sensor),
+                moisturePercentage: await this.calculateMoisturePercentage(sensor),
+            });
+        }
+
+        return statuses;
+    }
+
+    private async isSensorAlive(sensor: Sensor): Promise<boolean> {
+        // TODO
+        return true;
+    }
+
+    private async calculateMoisturePercentage(sensor: Sensor): Promise<number> {
+        // TODO
+        return 50;
+    }
+
+    private async findSensorById(id: number): Promise<Sensor> {
+        return await this.getOrFail<Sensor>(`SELECT * FROM Sensor WHERE id = ?`, id);
     }
 
     private async findOrCreateSensorByName(name: string): Promise<Sensor> {

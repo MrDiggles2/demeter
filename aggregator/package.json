@@ -4,12 +4,11 @@
   "description": "",
   "main": "main.js",
   "scripts": {
-    "start": "nodemon main.js",
+    "start": "nodemon --exec node --loader ts-node/esm main.ts",
     "build": "webpack --config webpack.config.js",
     "build:watch": "webpack --config webpack.config.js --progress --watch",
     "install-service": "sudo cp demeter-aggregator.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl restart demeter-aggregator.service && sudo systemctl status demeter-aggregator.service --no-pager"
   },
-  "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MrDiggles2/demeter.git"
@@ -46,6 +45,7 @@
     "node-sass": "^5.0.0",
     "sass-loader": "^11.0.1",
     "ts-jest": "^27.0.7",
+    "tslib": "^2.3.1",
     "typescript": "^4.5.2",
     "webpack": "^5.24.3",
     "webpack-cli": "^4.5.0"

@@ -16,7 +16,7 @@ const TIMEOUT_MS = 24 *  60 * 60 * 1000;
     const dbService = new DBService(db);
     const mqttClient = mqtt.connect('mqtt://raspberrypi.local:1883');
 
-    mqttClient.on('connect', function () {
+    mqttClient.on('connect', () => {
         mqttClient.subscribe('$SYS/demeter/readings/+/#', function (err, granted) {
             if (err) {
                 console.error(`Failed to subcribe: ${err}`);
@@ -68,48 +68,27 @@ const TIMEOUT_MS = 24 *  60 * 60 * 1000;
     });
 
     app.get('/status', async (req, res, next) => {
-        const ignorePattern = req.query.ignorePattern?.toString() ?? null;
+        const statuses = await dbService.getSensorStatuses();
 
-        try {
-            const posts = await db.all(`
-                SELECT r1.*
-                FROM Reading r1
-                LEFT OUTER JOIN Reading r2
-                    ON r1.name = r2.name AND r1.id < r2.id
-                WHERE r2.id IS null
-            `);
+        res.send({
+            data: statuses,
+            metadata: { }
+        });
+    });
 
-            res.send({
-                data: posts
-                    .filter(post => {
-                        const { name } = post;
+    app.post('/readings', async (req, res, next) => {
 
-                        if (ignorePattern === null) {
-                            return true;
-                        }
+        const value = req.query.value?.toString() ?? null;
+        const name = req.query.name?.toString() ?? null;
 
-                        var regex = new RegExp(ignorePattern, 'g');
-                        return !regex.test(name);
-                    })
-                    .map(post => {
-                        const { name, raw, addedAt } = post;
-
-                        return {
-                            name,
-                            // TODO: replace this with some kind of calculation based on "raw" later
-                            value: Math.round(Math.random() * 80 + 20),
-                            isAlive: (Date.now() - (addedAt * 1000)) < TIMEOUT_MS,
-                        };
-                    }
-                ),
-                meta: {
-                    query: {
-                        ignorePattern
-                    }
-                }
-            });
-        } catch (err) {
-            next(err);
+        if (name === null || value === null) {
+            res.status(400);
+            return res.send({ message: 'Invalid format' });
+        } else {
+            console.log("Logging reading: ", { name, value });
+            await dbService.recordReading(name, parseInt(value));
+            res.status(201);
+            return res.send();
         }
     });
 })();
