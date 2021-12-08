@@ -37,8 +37,8 @@ export class DBService {
         );
     }
 
-    public async getReadings(names: string[], count: number): Promise<Array<Reading | { name: string}>> {
-        return this.db.all<Array<Reading | { name: string}>>(`
+    public async getReadings(names: string[], count: number): Promise<Array<Reading & { name: string}>> {
+        return this.db.all<Array<Reading & { name: string}>>(`
             SELECT
                 Reading.id,
                 sensorId,
