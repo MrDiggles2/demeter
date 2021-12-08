@@ -1,4 +1,5 @@
 import * as sqlite from 'sqlite';
+import regression from 'regression';
 
 export interface Sensor {
     id: number;
