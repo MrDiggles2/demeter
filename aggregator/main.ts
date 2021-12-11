@@ -69,11 +69,22 @@ const TIMEOUT_MS = 24 *  60 * 60 * 1000;
 
     app.get('/status', async (req, res, next) => {
         const statuses = await dbService.getSensorStatuses();
+        const compact = req.query.compact?.toString() === 'true';
 
-        res.send({
-            data: statuses,
-            metadata: { }
-        });
+        if (compact) {
+            res.send(
+                statuses.map(status => ({
+                    n: status.sensor.name,
+                    v: status.moisturePercentage,
+                    a: status.isAlive ? 1 : 0
+                }))
+            );
+        } else {
+            res.send({
+                data: statuses,
+                metadata: { }
+            });
+        }
     });
 
     app.post('/readings', async (req, res, next) => {
