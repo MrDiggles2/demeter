@@ -12,7 +12,7 @@
 // Statically declare to keep canvas allocated on the stack to save on heap space
 // H * W / byte
 UBYTE *canvas = new UBYTE[400 * 300 / 8];
-int LIMIT = 7;
+int LIMIT = 10;
 int DATA_ARRAY_SPACE = 1024;
 
 /**
@@ -92,7 +92,7 @@ void initializeDisplay() {
  * Draws the status of a single sensor
  */
 void drawSensorStatus(int index, String name, int value, int isAlive) {
-  Serial.println("[" + String(index) + "] " + name + ": " + String(value) + ", " + String(isAlive));
+  Serial.println("Drawing [" + String(index) + "] " + name + ": " + String(value) + ", " + String(isAlive));
 
   if (isAlive == 0) name = "!" + name;
   int bufferSize = name.length() + 1;
@@ -103,7 +103,7 @@ void drawSensorStatus(int index, String name, int value, int isAlive) {
   // Max height = 400
 
   UWORD startX = 1;
-  UWORD startY = 10 + (index * 40);
+  UWORD startY = 10 + (index * 30);
   UWORD barStartX = 150;
   UWORD barEndX = barStartX + 145;
   UWORD barEndY = startY + 20;
@@ -111,7 +111,7 @@ void drawSensorStatus(int index, String name, int value, int isAlive) {
   // Draw the name of the sensor
   Paint_DrawString_EN(
     startX,
-    startY,
+    startY + 1,
     nameAsChar,
     &Font20,
     WHITE,
@@ -127,13 +127,13 @@ void drawSensorStatus(int index, String name, int value, int isAlive) {
     DRAW_FILL_EMPTY
   );
 
-  UWORD borderWidth = 3;
+  UWORD borderWidth = 4;
   UWORD fillBarX = map(value, 0, 100, barStartX + borderWidth, barEndX - borderWidth);
 
   // Draw the fill of the bar
   Paint_DrawRectangle(
     barStartX + borderWidth, startY + borderWidth,
-    fillBarX, barEndY - borderWidth,
+    fillBarX, barEndY - borderWidth + 1,
     BLACK,
     DOT_PIXEL_1X1,
     DRAW_FILL_FULL
@@ -166,11 +166,10 @@ void setup() {
     );
   }
 
-  dataArray.clear();
-
   Serial.println("Displaying canvas on screen");
   EPD_4IN2_Display(canvas);
 
+  dataArray.clear();
   Serial.println("Done");
 }
 
