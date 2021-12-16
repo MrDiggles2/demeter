@@ -1,6 +1,6 @@
 # Demeter
 
-Low power, wireless plant moisture detectors.
+Low power, wireless plant moisture sensors.
 
 |Module|Description|
 |--|--|
