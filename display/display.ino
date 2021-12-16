@@ -12,16 +12,18 @@
 // Statically declare to keep canvas allocated on the stack to save on heap space
 // H * W / byte
 UBYTE *canvas = new UBYTE[400 * 300 / 8];
+int LIMIT = 7;
+int DATA_ARRAY_SPACE = 1024;
 
 /**
- * Fills *data with response from API. Return true on success, false otherwise.
+ * Fills *dataArray with response from API. Return true on success, false otherwise.
  */
-bool fetchDataArray(JsonArray *data) {
-  char* ssid     = "Bebes on Parade";
-  char* password = "lameepmeep";
+bool fetchDataArray(DynamicJsonDocument *dataArray) {
+  String ssid     = "Bebes on Parade";
+  String password = "lameepmeep";
   WiFiClient wifiClient;
   
-  char* apiUrl = "http://raspberrypi.local:3000/status?ignorePattern=(test|ignore)";
+  String apiUrl = "http://raspberrypi.local:3000/status?compact=true&count=" + String(LIMIT);
   HTTPClient httpClient;
 
   Serial.println("Connecting to " + String(ssid));
@@ -31,57 +33,68 @@ bool fetchDataArray(JsonArray *data) {
     delay(500);
     Serial.print(".");
   }
-  Serial.println();
+  Serial.println("Connected");
 
   String rawJson;
 
+  Serial.println("Begin GET");
+
   if (httpClient.begin(wifiClient, apiUrl)) {
-    // start connection and send HTTP header
-    httpClient.setTimeout(10000);
+
+    httpClient.setTimeout(30000); // 30 seconds
     int httpCode = httpClient.GET();
     
     // httpCode will be negative on error
     if (httpCode > 0) {
       // HTTP header has been send and Server response header has been handled
       Serial.printf("[HTTP] GET response code: %d\n", httpCode);
-      
-      // file found at server
-      if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
+
+      if (httpCode == HTTP_CODE_OK) {
         rawJson = httpClient.getString();
-        Serial.println(rawJson);
+        Serial.println("Raw JSON: " + rawJson);
       }
     } else {
-      Serial.printf("[HTTP] GET failed, error: %s\n", httpClient.errorToString(httpCode).c_str());
+      Serial.printf("HTTP GET failed, error: %s\n", httpClient.errorToString(httpCode).c_str());
       return false;
     }
     
     httpClient.end();
   } else {
-    Serial.println("[HTTP] Unable to connect");
+    Serial.println("Unable to connect via HTTP");
     return false;
   }
 
-  DynamicJsonDocument doc(768);
-
   // Parse JSON object
-  DeserializationError error = deserializeJson(doc, rawJson);
+  DeserializationError error = deserializeJson(*dataArray, rawJson);
   if (error) {
     Serial.print(F("deserializeJson() failed: "));
     Serial.println(error.f_str());
     return false;
   }
 
-  *data = doc["data"].as<JsonArray>();
   return true;
+}
+
+/**
+ * Initializes display for drawing
+ */
+void initializeDisplay() {
+  DEV_Module_Init();
+  EPD_4IN2_Init();
+  EPD_4IN2_Clear();
+  DEV_Delay_ms(500);
+  Paint_NewImage(canvas, EPD_4IN2_WIDTH, EPD_4IN2_HEIGHT, 0, WHITE);
+  Paint_SetRotate(ROTATE_90);
+  Paint_Clear(WHITE);
 }
 
 /**
  * Draws the status of a single sensor
  */
-void drawSensorStatus(int index, String name, int value, bool isAlive) {
+void drawSensorStatus(int index, String name, int value, int isAlive) {
   Serial.println("[" + String(index) + "] " + name + ": " + String(value) + ", " + String(isAlive));
 
-  if (!isAlive) name = "!" + name;
+  if (isAlive == 0) name = "!" + name;
   int bufferSize = name.length() + 1;
   char nameAsChar[bufferSize];
   name.toCharArray(nameAsChar, bufferSize);
@@ -90,7 +103,7 @@ void drawSensorStatus(int index, String name, int value, bool isAlive) {
   // Max height = 400
 
   UWORD startX = 1;
-  UWORD startY = 120 + (index * 40);
+  UWORD startY = 10 + (index * 40);
   UWORD barStartX = 150;
   UWORD barEndX = barStartX + 145;
   UWORD barEndY = startY + 20;
@@ -130,34 +143,30 @@ void drawSensorStatus(int index, String name, int value, bool isAlive) {
 void setup() {
   Serial.begin(9600); // open serial port, set the baud rate to 9600 bps
 
-  JsonArray data;
-  bool success = fetchDataArray(&data);
+  DynamicJsonDocument dataArray(DATA_ARRAY_SPACE);
+  bool success = fetchDataArray(&dataArray);
   if (!success) {
     Serial.println("Failed to fetch data array");
     return;
   }
-  int dataSize = data.size();
+
+  int dataSize = dataArray.size();
   Serial.println("Number of sensors: " + String(dataSize));
 
-  Serial.println("Setting up canvas");
-  DEV_Module_Init();
-  EPD_4IN2_Init();
-  EPD_4IN2_Clear();
-  DEV_Delay_ms(500);
-  Paint_NewImage(canvas, EPD_4IN2_WIDTH, EPD_4IN2_HEIGHT, 0, WHITE);
-  Paint_SetRotate(ROTATE_90);
-  Paint_Clear(WHITE);
+  initializeDisplay();
 
   for (int i = 0; i < dataSize; i++) {
+    JsonObject obj = dataArray[i].as<JsonObject>();
+
     drawSensorStatus(
       i,
-      data[i]["name"].as<String>(),
-      data[i]["value"].as<int>(),
-      data[i]["isAlive"].as<bool>()
+      obj["n"],     // sensor.name
+      obj["v"],     // moistureLevel
+      obj["a"]      // isAlive as 0,1
     );
   }
 
-  data.clear();
+  dataArray.clear();
 
   Serial.println("Displaying canvas on screen");
   EPD_4IN2_Display(canvas);
