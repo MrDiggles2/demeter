@@ -1,12 +1,7 @@
-#! /usr/bin/env node
-
 import * as path from 'path';
-import { fileURLToPath } from 'url';
 import * as sqlite from 'sqlite';
 import sqlite3 from 'sqlite3';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { getMigrations } from './shared';
 
 (async () => {
     try {
@@ -15,9 +10,18 @@ const __dirname = path.dirname(__filename);
             driver: sqlite3.Database
         });
 
+        console.log(`Migrations before: `);
+        (await getMigrations(db)).forEach(name => console.log(`    ${name}`));
+
         await db.migrate({
+            table: 'migrations',
             migrationsPath: path.join(__dirname, '..', 'migrations')
         });
+
+        console.log(`Migrations after: `);
+        (await getMigrations(db)).forEach(name => console.log(`    ${name}`));
+
+        console.log('\ndone');
     } catch (e) {
         console.error('Unable to run migrations. (Did you remember to turn off the application?)');
         console.error(e);

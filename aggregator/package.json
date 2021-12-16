@@ -5,6 +5,8 @@
   "main": "main.js",
   "scripts": {
     "start": "nodemon --exec node --loader ts-node/esm main.ts",
+    "migration:run": "npx ts-node ./bin/migration-run.ts",
+    "migration:list": "npx ts-node ./bin/migration-list.ts",
     "build": "webpack --config webpack.config.mjs",
     "build:watch": "webpack --config webpack.config.mjs --progress --watch",
     "install-service": "sudo cp demeter-aggregator.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl restart demeter-aggregator.service && sudo systemctl status demeter-aggregator.service --no-pager"
