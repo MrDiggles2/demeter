@@ -6,8 +6,6 @@ import cors from 'cors';
 import morgan from 'morgan';
 import { DBService } from './db.service';
 
-const TIMEOUT_MS = 24 *  60 * 60 * 1000;
-
 (async() => {
     const db = await sqlite.open({
         filename: './database.sqlite',
