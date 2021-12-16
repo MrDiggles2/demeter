@@ -68,7 +68,8 @@ const TIMEOUT_MS = 24 *  60 * 60 * 1000;
     });
 
     app.get('/status', async (req, res, next) => {
-        const statuses = await dbService.getSensorStatuses();
+        const count = parseInt(req.query.count?.toString() ?? '5');
+        const statuses = await dbService.getSensorStatuses(count);
         const compact = req.query.compact?.toString() === 'true';
 
         if (compact) {
@@ -82,7 +83,7 @@ const TIMEOUT_MS = 24 *  60 * 60 * 1000;
         } else {
             res.send({
                 data: statuses,
-                metadata: { }
+                meta: { count }
             });
         }
     });

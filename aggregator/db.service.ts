@@ -53,7 +53,7 @@ export class DBService {
         `);
     }
 
-    public async getSensorStatuses(): Promise<SensorStatus[]> {
+    public async getSensorStatuses(limit = 5): Promise<SensorStatus[]> {
         const statuses: SensorStatus[] = [];
 
         const latestReadings = await this.db.all<Array<Reading>>(`
@@ -62,6 +62,7 @@ export class DBService {
             LEFT OUTER JOIN Reading r2
                 ON r1.sensorId = r2.sensorId AND r1.id < r2.id
             WHERE r2.id IS null
+            LIMIT ${limit}
         `);
 
         for (const latestReading of latestReadings) {
