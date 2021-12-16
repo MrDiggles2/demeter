@@ -1,4 +1,4 @@
 data.sqlite
 node_modules
-database.sqlite
+*.sqlite
 dist/
