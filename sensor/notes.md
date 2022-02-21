@@ -41,7 +41,7 @@ https://www.aliexpress.com/item/1005001636474859.html?spm=a2g0s.9042311.0.0.6a64
   * Potentially due to high impedance on sensor, started experiment with 100k and 220k resistors
     * Named as "pcb-test-w-220uF-new-resistors"
 
-* Normalizing reads between sensors
+* ~~Normalizing reads between sensors~~ - **No longer necessary, fixed accuracy by increasing resistance on voltage dividers**
   * Usually within 20% of each other
   * Have to normalize somehow and map to 1-100 range
     * Manual?
